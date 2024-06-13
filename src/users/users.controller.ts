@@ -10,6 +10,7 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  HttpException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,7 +35,10 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async show(@Param('id', new ParseIntPipe()) id: number) {
-    return await this.usersService.findOneOrFail({ where: { id } });
+    return await this.usersService.findOneOrFail({ 
+      where: { id },
+      select: ['cpf', 'name', 'email', 'profile_picture', 'bio'],
+    });
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -51,5 +55,18 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async destroy(@Param('id', new ParseIntPipe()) id: number) {
     return this.usersService.destroy(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id/disable')
+  async disableUser(@Param('id', ParseIntPipe) id: number) {
+    const user = await this.usersService.findOneOrFail({ where: { id } });
+    if (!user.is_active) {
+      throw new HttpException('User already inactive', HttpStatus.BAD_REQUEST);
+    }
+    user.is_active = false;
+    user.tokenVersion++;
+    await this.usersService.update(id, user);
+    return { status: 'User has been disabled' };
   }
 }

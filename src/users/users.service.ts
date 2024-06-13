@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, FindOneOptions } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -14,8 +14,16 @@ export class UsersService {
 
   async create(data: CreateUserDto) {
     const user = this.userRepository.create(data);
+    if (await this.userRepository.findOne({ where: { cpf: user.cpf } })) {
+      throw new BadRequestException('CPF or Email already registered');
+    }
+    
+    if (await this.userRepository.findOne({ where: { email: user.email } })) {
+      throw new BadRequestException('CPF or Email already registered');
+    }
+    
     return await this.userRepository.save(user);
-  }
+  }  
 
   async findAll() {
     return this.userRepository.find({

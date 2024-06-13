@@ -9,7 +9,7 @@ export class AuthService {
   constructor(private readonly userService: UsersService, private readonly jwtService: JwtService) {}
 
   async login(user) {
-    const payload = { sub: user.id }
+    const payload = { sub: user.id, tokenVersion: user.tokenVersion }
 
     return {
       token: this.jwtService.sign(payload)
@@ -17,16 +17,18 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string): Promise<any> {
-    let user: User 
+    let user: User;
     try {
       user = await this.userService.findOneOrFail({ where: { email } });
     } catch (error) {
       return null;
     }
-
-    const isPasswordValid = await compareSync(password, user.password);
+  
+    const isPasswordValid = compareSync(password, user.password);
     const isEmailValid = user.email === email;
-    if (!isPasswordValid || !isEmailValid) return null;
+    if (!isPasswordValid || !isEmailValid || !user.is_active) {
+      return null;
+    }
     return user;
-  }
+  }  
 }

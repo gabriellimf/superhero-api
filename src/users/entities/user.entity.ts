@@ -33,6 +33,9 @@ export class User {
   @Column({ nullable: true, type: 'text' })
   bio: string;
 
+  @Column('int', { default: 0 })
+  tokenVersion: number;
+
   @Column({ default: true })
   is_active: boolean;
 
