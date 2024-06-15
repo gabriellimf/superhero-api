@@ -28,7 +28,7 @@ import { AuthModule } from './auth/auth.module';
     PassportModule,
     JwtModule.register({
       secret: 'secretKey',
-      signOptions: { expiresIn: '60s' },
+      signOptions: { expiresIn: '120s' },
     }),
     SuperheroModule,
     AuthModule,
