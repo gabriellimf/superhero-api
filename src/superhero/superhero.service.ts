@@ -4,18 +4,32 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, FindOneOptions } from 'typeorm';
 import { Superhero } from './entities/superhero.entity';
 import { CreateSuperheroDto } from './dto/create-superhero.dto';
 import { UpdateSuperheroDto } from './dto/update-superhero.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { race } from 'rxjs';
+import { Gender } from './entities/gender.entity';
+import { Publisher } from './entities/publisher.entity';
+import { Colour } from './entities/colour.entity';
+import { Race } from './entities/race.entity';
+import { Alignment } from './entities/alignment.entity';
 
 @Injectable()
 export class SuperheroService {
   constructor(
     @InjectRepository(Superhero)
     private superheroRepository: Repository<Superhero>,
+    @InjectRepository(Gender)
+    private genderRepository: Repository<Gender>,
+    @InjectRepository(Publisher)
+    private publisherRepository: Repository<Publisher>,
+    @InjectRepository(Colour)
+    private colourRepository: Repository<Colour>,
+    @InjectRepository(Race)
+    private raceRepository: Repository<Race>,
+    @InjectRepository(Alignment)
+    private alignmentRepository: Repository<Alignment>,
   ) {}
 
   async create(createSuperheroDto: CreateSuperheroDto): Promise<Superhero> {
@@ -26,16 +40,27 @@ export class SuperheroService {
       throw new BadRequestException('Superhero already exists with this name');
     }
 
-    const superhero = this.superheroRepository.create({
-      ...createSuperheroDto,
-      gender: { id: createSuperheroDto.gender_id },
-      eye_colour: { id: createSuperheroDto.eye_colour_id },
-      hair_colour: { id: createSuperheroDto.hair_colour_id },
-      skin_colour: { id: createSuperheroDto.skin_colour_id },
-      race: { id: createSuperheroDto.race_id },
-      publisher: { id: createSuperheroDto.publisher_id },
-      alignment: { id: createSuperheroDto.alignment_id },
-    });
+    const gender = await this.genderRepository.findOneBy({ id: createSuperheroDto.gender_id });
+    const eyeColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.eye_colour_id });
+    const hairColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.hair_colour_id });
+    const skinColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.skin_colour_id });
+    const race = await this.raceRepository.findOneBy({ id: createSuperheroDto.race_id });
+    const publisher = await this.publisherRepository.findOneBy({ id: createSuperheroDto.publisher_id });
+    const alignment = await this.alignmentRepository.findOneBy({ id: createSuperheroDto.alignment_id });
+
+    const superhero = new Superhero();
+    superhero.superhero_name = createSuperheroDto.superhero_name;
+    superhero.full_name = createSuperheroDto.full_name;
+    superhero.gender = gender;
+    superhero.eye_colour = eyeColour;
+    superhero.hair_colour = hairColour;
+    superhero.skin_colour = skinColour
+    superhero.race = race;
+    superhero.publisher = publisher;
+    superhero.alignment = alignment;
+    superhero.height_cm = createSuperheroDto.height_cm;
+    superhero.weight_kg = createSuperheroDto.weight_kg;
+
     try {
       return await this.superheroRepository.save(superhero);
     } catch (error) {
@@ -51,32 +76,31 @@ export class SuperheroService {
     return superheroes;
   }
 
-  async findOne(id: number): Promise<Superhero> {
-    const superhero = await this.superheroRepository.findOneBy({ id });
+  async findOneOrFail(options: FindOneOptions<Superhero>) {
+    try {
+      return await this.superheroRepository.findOneOrFail({
+        relations: ['gender', 'eye_colour', 'hair_colour', 'skin_colour', 'race', 'publisher', 'alignment'],
+        ...options,
+      });
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  async update(id: number, updateSuperheroDto: UpdateSuperheroDto) {
+    const superhero = await this.findOneOrFail({ where: { id } });
     if (!superhero) {
       throw new NotFoundException('Superhero not found');
     }
-    return superhero;
+    this.superheroRepository.merge(superhero, updateSuperheroDto);
+    return await this.superheroRepository.save(superhero);
   }
 
-  async update(
-    id: number,
-    updateSuperheroDto: UpdateSuperheroDto,
-  ): Promise<Superhero> {
-    const updateResult = await this.superheroRepository.update(
-      id,
-      updateSuperheroDto,
-    );
-    if (updateResult.affected === 0) {
+  async remove(id: number) {
+    const superhero = await this.findOneOrFail({ where: { id } });
+    if (!superhero) {
       throw new NotFoundException('Superhero not found');
     }
-    return this.superheroRepository.findOneBy({ id });
-  }
-
-  async remove(id: number): Promise<void> {
-    const deleteResult = await this.superheroRepository.delete(id);
-    if (deleteResult.affected === 0) {
-      throw new NotFoundException('Superhero not found');
-    }
+    return await this.superheroRepository.remove(superhero);
   }
 }

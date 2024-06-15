@@ -7,45 +7,49 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { SuperheroService } from './superhero.service';
 import { CreateSuperheroDto } from './dto/create-superhero.dto';
 import { UpdateSuperheroDto } from './dto/update-superhero.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('superhero')
 export class SuperheroController {
   constructor(private readonly superheroesService: SuperheroService) {}
 
-  @UseGuards()
+  @UseGuards(AuthGuard('jwt'))
   @Post()
-  create(@Body() createSuperheroDto: CreateSuperheroDto) {
+  async create(@Body() createSuperheroDto: CreateSuperheroDto) {
     return this.superheroesService.create(createSuperheroDto);
   }
 
-  @UseGuards()
+  @UseGuards(AuthGuard('jwt'))
   @Get()
-  findAll() {
+  async findAll() {
     return this.superheroesService.findAll();
   }
 
-  @UseGuards()
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.superheroesService.findOne(+id);
+  async show(@Param('id', new ParseIntPipe()) id: number) {
+    return this.superheroesService.findOneOrFail({ 
+      where: { id },
+    });
   }
 
-  @UseGuards()
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateSuperheroDto: UpdateSuperheroDto,
   ) {
     return this.superheroesService.update(+id, updateSuperheroDto);
   }
 
-  @UseGuards()
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     return this.superheroesService.remove(+id);
   }
 }
