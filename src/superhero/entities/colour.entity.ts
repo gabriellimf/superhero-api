@@ -9,6 +9,6 @@ export class Colour {
   @Column({ type: 'varchar', length: 20 })
   colour: string;
 
-  @OneToMany(() => Superhero, (superhero) => superhero.eye_colour)
+  @OneToMany(() => Superhero, (superhero) => superhero.eye_colour, { onDelete: 'CASCADE' })
   superheroes: Superhero[];
 }

@@ -8,6 +8,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule } from '@nestjs/config';
 import { SuperheroModule } from './superhero/superhero.module';
 import { AuthModule } from './auth/auth.module';
+import { SuperpowerModule } from './superpower/superpower.module';
 
 @Module({
   imports: [
@@ -27,11 +28,12 @@ import { AuthModule } from './auth/auth.module';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: 'secretKey',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '120s' },
     }),
     SuperheroModule,
     AuthModule,
+    SuperpowerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

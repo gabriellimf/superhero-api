@@ -9,6 +9,6 @@ export class Alignment {
   @Column({ type: 'varchar', length: 10 })
   alignment: string;
 
-  @OneToMany(() => Superhero, (superhero) => superhero.alignment)
+  @OneToMany(() => Superhero, (superhero) => superhero.alignment, { onDelete: 'CASCADE' })
   superheroes: Superhero[];
 }

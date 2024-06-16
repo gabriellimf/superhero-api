@@ -9,6 +9,6 @@ export class Race {
   @Column({ type: 'varchar', length: 100 })
   race: string;
 
-  @OneToMany(() => Superhero, (superhero) => superhero.race)
+  @OneToMany(() => Superhero, (superhero) => superhero.race, { onDelete: 'CASCADE' })
   superheroes: Superhero[];
 }

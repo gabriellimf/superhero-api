@@ -9,8 +9,10 @@ async function executeSqlFile(filePath: string, connection: any) {
 
 async function seed() {
   const connection = await createConnection();
-  const setval =
+  const setvalSuperhero =
     "SELECT setval('superhero.superhero_id_seq', (SELECT MAX(id) FROM superhero.superhero))";
+  const setvalPower =
+    "SELECT setval('superhero.superpower_id_seq', (SELECT MAX(id) FROM superhero.superpower))";
   try {
     const sqlPath = path.join(__dirname, 'queries');
 
@@ -28,7 +30,8 @@ async function seed() {
       path.join(sqlPath, 'query-hero-attribute.sql'),
       connection,
     );
-    await connection.query(setval);
+    await connection.query(setvalSuperhero);
+    await connection.query(setvalPower);
 
     console.log('All SQL files have been executed!');
   } catch (error) {

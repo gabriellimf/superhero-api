@@ -9,6 +9,6 @@ export class Publisher {
   @Column({ type: 'varchar', length: 50 })
   publisher_name: string;
 
-  @OneToMany(() => Superhero, (superhero) => superhero.publisher)
+  @OneToMany(() => Superhero, (superhero) => superhero.publisher, { onDelete: 'CASCADE' })
   superheroes: Superhero[];
 }
