@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PinoLogger } from 'nestjs-pino';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { FindOneOptions, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -14,10 +14,8 @@ import { User } from './entities/user.entity';
 export class UsersService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
-    private logger: PinoLogger
-  ) {
-    this.logger.setContext('UsersService');
-  }
+    @InjectPinoLogger(UsersService.name) private readonly logger: PinoLogger,
+  ) {}
 
   async create(data: CreateUserDto) {
     try {
@@ -29,7 +27,11 @@ export class UsersService {
       this.logger.info({ msg: 'Saving new user', cpf: data.cpf });
       return await this.userRepository.save(data);
     } catch (e) {
-      this.logger.error({ msg: 'Failed to create user', cpf: data.cpf, error: e.message });
+      this.logger.error({
+        msg: 'Failed to create user',
+        cpf: data.cpf,
+        error: e.message,
+      });
       throw e;
     }
   }

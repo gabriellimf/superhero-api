@@ -9,6 +9,8 @@ export class Superpower {
   @Column({ type: 'varchar', length: 200 })
   power_name: string;
 
-  @OneToMany(() => HeroPower, (hero_power) => hero_power.power, { onDelete: 'CASCADE' })
+  @OneToMany(() => HeroPower, (hero_power) => hero_power.power, {
+    onDelete: 'CASCADE',
+  })
   heroPowers: HeroPower[];
 }

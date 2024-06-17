@@ -1,29 +1,38 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOneOptions } from 'typeorm';
-import { Superpower } from './entities/superpower.entity';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { FindOneOptions, Repository } from 'typeorm';
 import { CreateSuperpowerDto } from './dto/create-hero-power.dto';
 import { UpdateSuperpowerDto } from './dto/update-hero-power.dto';
-import { PinoLogger } from 'nestjs-pino';
+import { Superpower } from './entities/superpower.entity';
 
 @Injectable()
 export class SuperpowerService {
   constructor(
     @InjectRepository(Superpower)
     private superpowerRepository: Repository<Superpower>,
-    private logger: PinoLogger
-  ) {
-    this.logger.setContext('SuperpowerService');
-  }
+    @InjectPinoLogger(SuperpowerService.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   async create(createSuperpowerDto: CreateSuperpowerDto): Promise<Superpower> {
     const superpower = new Superpower();
     superpower.power_name = createSuperpowerDto.power_name;
     try {
-      this.logger.info({ msg: 'Creating new superpower', power_name: superpower.power_name });
+      this.logger.info({
+        msg: 'Creating new superpower',
+        power_name: superpower.power_name,
+      });
       return await this.superpowerRepository.save(superpower);
     } catch (error) {
-      this.logger.error({ msg: 'Failed to create superpower', error: error.message });
+      this.logger.error({
+        msg: 'Failed to create superpower',
+        error: error.message,
+      });
       throw new BadRequestException('Failed to create superpower');
     }
   }
@@ -40,7 +49,10 @@ export class SuperpowerService {
     }
   }
 
-  async update(id: number, updateSuperpowerDto: UpdateSuperpowerDto): Promise<Superpower> {
+  async update(
+    id: number,
+    updateSuperpowerDto: UpdateSuperpowerDto,
+  ): Promise<Superpower> {
     const superpower = await this.findOneOrFail({ where: { id } });
     this.logger.warn({ msg: 'You will update this superpower', id });
     if (!superpower) {

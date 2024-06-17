@@ -6,7 +6,7 @@ import { Superhero } from '../superhero/entities/superhero.entity';
 import { HeroAttribute } from '../attribute/entities/hero-attribute.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Superhero, HeroAttribute])], // Importação dos repositórios necessários
+  imports: [TypeOrmModule.forFeature([Superhero, HeroAttribute])],
   controllers: [BattleController],
   providers: [BattleService],
 })

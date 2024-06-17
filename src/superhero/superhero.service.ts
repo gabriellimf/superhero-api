@@ -14,7 +14,7 @@ import { Publisher } from './entities/publisher.entity';
 import { Colour } from './entities/colour.entity';
 import { Race } from './entities/race.entity';
 import { Alignment } from './entities/alignment.entity';
-import { PinoLogger } from 'nestjs-pino';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class SuperheroService {
@@ -31,28 +31,47 @@ export class SuperheroService {
     private raceRepository: Repository<Race>,
     @InjectRepository(Alignment)
     private alignmentRepository: Repository<Alignment>,
-    private logger: PinoLogger
-  ) {
-    this.logger.setContext('SuperheroService');
-  }
+    @InjectPinoLogger(SuperheroService.name)
+    private logger: PinoLogger,
+  ) {}
 
   async create(createSuperheroDto: CreateSuperheroDto): Promise<Superhero> {
     const existingSuperhero = await this.superheroRepository.findOneBy({
       superhero_name: createSuperheroDto.superhero_name,
     });
-    this.logger.info({ msg: 'Checking if superhero exists', superhero_name: createSuperheroDto.superhero_name });
+    this.logger.info({
+      msg: 'Checking if superhero exists',
+      superhero_name: createSuperheroDto.superhero_name,
+    });
     if (existingSuperhero) {
-      this.logger.error({ msg: 'Superhero already exists with this name', superhero_name: createSuperheroDto.superhero_name });
+      this.logger.error({
+        msg: 'Superhero already exists with this name',
+        superhero_name: createSuperheroDto.superhero_name,
+      });
       throw new BadRequestException('Superhero already exists with this name');
     }
 
-    const gender = await this.genderRepository.findOneBy({ id: createSuperheroDto.gender_id });
-    const eyeColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.eye_colour_id });
-    const hairColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.hair_colour_id });
-    const skinColour = await this.colourRepository.findOneBy({ id: createSuperheroDto.skin_colour_id });
-    const race = await this.raceRepository.findOneBy({ id: createSuperheroDto.race_id });
-    const publisher = await this.publisherRepository.findOneBy({ id: createSuperheroDto.publisher_id });
-    const alignment = await this.alignmentRepository.findOneBy({ id: createSuperheroDto.alignment_id });
+    const gender = await this.genderRepository.findOneBy({
+      id: createSuperheroDto.gender_id,
+    });
+    const eyeColour = await this.colourRepository.findOneBy({
+      id: createSuperheroDto.eye_colour_id,
+    });
+    const hairColour = await this.colourRepository.findOneBy({
+      id: createSuperheroDto.hair_colour_id,
+    });
+    const skinColour = await this.colourRepository.findOneBy({
+      id: createSuperheroDto.skin_colour_id,
+    });
+    const race = await this.raceRepository.findOneBy({
+      id: createSuperheroDto.race_id,
+    });
+    const publisher = await this.publisherRepository.findOneBy({
+      id: createSuperheroDto.publisher_id,
+    });
+    const alignment = await this.alignmentRepository.findOneBy({
+      id: createSuperheroDto.alignment_id,
+    });
 
     const superhero = new Superhero();
     superhero.superhero_name = createSuperheroDto.superhero_name;
@@ -60,7 +79,7 @@ export class SuperheroService {
     superhero.gender = gender;
     superhero.eye_colour = eyeColour;
     superhero.hair_colour = hairColour;
-    superhero.skin_colour = skinColour
+    superhero.skin_colour = skinColour;
     superhero.race = race;
     superhero.publisher = publisher;
     superhero.alignment = alignment;
@@ -68,26 +87,36 @@ export class SuperheroService {
     superhero.weight_kg = createSuperheroDto.weight_kg;
 
     try {
-      this.logger.info({ msg: 'Creating new superhero', superhero_name: superhero.superhero_name });
+      this.logger.info({
+        msg: 'Creating new superhero',
+        superhero_name: superhero.superhero_name,
+      });
       return await this.superheroRepository.save(superhero);
     } catch (error) {
-      this.logger.error({ msg: 'Failed to create superhero', error: error.message });
+      this.logger.error({
+        msg: 'Failed to create superhero',
+        error: error.message,
+      });
       throw new InternalServerErrorException('Failed to create superhero');
     }
   }
 
   async findAll(): Promise<Superhero[]> {
-    const superheroes = await this.superheroRepository.find();
-    if (superheroes.length === 0) {
-      throw new NotFoundException('No superheroes found');
-    }
-    return superheroes;
+    return await this.superheroRepository.find();
   }
 
   async findOneOrFail(options: FindOneOptions<Superhero>) {
     try {
       return await this.superheroRepository.findOneOrFail({
-        relations: ['gender', 'eye_colour', 'hair_colour', 'skin_colour', 'race', 'publisher', 'alignment'],
+        relations: [
+          'gender',
+          'eye_colour',
+          'hair_colour',
+          'skin_colour',
+          'race',
+          'publisher',
+          'alignment',
+        ],
         ...options,
       });
     } catch (error) {

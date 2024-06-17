@@ -6,6 +6,8 @@ import { User } from 'src/users/entities/user.entity';
 import { UsersService } from 'src/users/users.service';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { usersFixtures } from './user.fixtures';
+import { getLoggerToken } from 'nestjs-pino';
+import { mockLogger } from 'test/helpers/mockLogger';
 
 describe('UserService', () => {
   let userService: UsersService;
@@ -16,7 +18,13 @@ describe('UserService', () => {
         TypeOrmModule.forRoot(createTestDatabase([User])),
         TypeOrmModule.forFeature([User]),
       ],
-      providers: [UsersService],
+      providers: [
+        UsersService,
+        {
+          provide: getLoggerToken(UsersService.name),
+          useValue: mockLogger,
+        },
+      ],
     }).compile();
 
     userService = module.get<UsersService>(UsersService);

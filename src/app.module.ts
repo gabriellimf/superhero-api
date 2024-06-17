@@ -1,18 +1,17 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule } from '@nestjs/config';
-import { SuperheroModule } from './superhero/superhero.module';
-import { AuthModule } from './auth/auth.module';
-import { SuperpowerModule } from './superpower/superpower.module';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { LoggerModule } from 'nestjs-pino';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AttributeModule } from './attribute/attribute.module';
+import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
-import { PinoLogger, LoggerModule } from 'nestjs-pino';
-import * as pino from 'pino';
+import { SuperheroModule } from './superhero/superhero.module';
+import { SuperpowerModule } from './superpower/superpower.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -23,10 +22,10 @@ import * as pino from 'pino';
           target: 'pino-mongodb',
           options: {
             uri: process.env.MONGO_URI,
-            collection: 'logs'
-          }
-        }
-      }
+            collection: 'logs',
+          },
+        },
+      },
     }),
     TypeOrmModule.forRoot({
       type: process.env.TYPEORM_CONNECTION,
