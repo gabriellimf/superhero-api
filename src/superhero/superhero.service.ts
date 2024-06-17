@@ -14,6 +14,7 @@ import { Publisher } from './entities/publisher.entity';
 import { Colour } from './entities/colour.entity';
 import { Race } from './entities/race.entity';
 import { Alignment } from './entities/alignment.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class SuperheroService {
@@ -30,13 +31,18 @@ export class SuperheroService {
     private raceRepository: Repository<Race>,
     @InjectRepository(Alignment)
     private alignmentRepository: Repository<Alignment>,
-  ) {}
+    private logger: PinoLogger
+  ) {
+    this.logger.setContext('SuperheroService');
+  }
 
   async create(createSuperheroDto: CreateSuperheroDto): Promise<Superhero> {
     const existingSuperhero = await this.superheroRepository.findOneBy({
       superhero_name: createSuperheroDto.superhero_name,
     });
+    this.logger.info({ msg: 'Checking if superhero exists', superhero_name: createSuperheroDto.superhero_name });
     if (existingSuperhero) {
+      this.logger.error({ msg: 'Superhero already exists with this name', superhero_name: createSuperheroDto.superhero_name });
       throw new BadRequestException('Superhero already exists with this name');
     }
 
@@ -62,8 +68,10 @@ export class SuperheroService {
     superhero.weight_kg = createSuperheroDto.weight_kg;
 
     try {
+      this.logger.info({ msg: 'Creating new superhero', superhero_name: superhero.superhero_name });
       return await this.superheroRepository.save(superhero);
     } catch (error) {
+      this.logger.error({ msg: 'Failed to create superhero', error: error.message });
       throw new InternalServerErrorException('Failed to create superhero');
     }
   }
@@ -88,19 +96,25 @@ export class SuperheroService {
   }
 
   async update(id: number, updateSuperheroDto: UpdateSuperheroDto) {
+    this.logger.warn({ msg: 'You will update this superhero', id });
     const superhero = await this.findOneOrFail({ where: { id } });
     if (!superhero) {
+      this.logger.error({ msg: 'Superhero not found', id });
       throw new NotFoundException('Superhero not found');
     }
+    this.logger.info({ msg: 'Updating superhero', id });
     this.superheroRepository.merge(superhero, updateSuperheroDto);
     return await this.superheroRepository.save(superhero);
   }
 
   async remove(id: number) {
+    this.logger.warn({ msg: 'You will delete this superhero', id });
     const superhero = await this.findOneOrFail({ where: { id } });
     if (!superhero) {
+      this.logger.error({ msg: 'Superhero not found', id });
       throw new NotFoundException('Superhero not found');
     }
+    this.logger.info({ msg: 'Deleting superhero', id });
     return await this.superheroRepository.remove(superhero);
   }
 }

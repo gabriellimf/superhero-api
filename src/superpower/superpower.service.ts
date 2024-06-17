@@ -4,21 +4,26 @@ import { Repository, FindOneOptions } from 'typeorm';
 import { Superpower } from './entities/superpower.entity';
 import { CreateSuperpowerDto } from './dto/create-hero-power.dto';
 import { UpdateSuperpowerDto } from './dto/update-hero-power.dto';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class SuperpowerService {
   constructor(
     @InjectRepository(Superpower)
     private superpowerRepository: Repository<Superpower>,
-  ) {}
+    private logger: PinoLogger
+  ) {
+    this.logger.setContext('SuperpowerService');
+  }
 
   async create(createSuperpowerDto: CreateSuperpowerDto): Promise<Superpower> {
     const superpower = new Superpower();
     superpower.power_name = createSuperpowerDto.power_name;
     try {
+      this.logger.info({ msg: 'Creating new superpower', power_name: superpower.power_name });
       return await this.superpowerRepository.save(superpower);
     } catch (error) {
-      console.error(error); // Adicione esta linha para logar o erro
+      this.logger.error({ msg: 'Failed to create superpower', error: error.message });
       throw new BadRequestException('Failed to create superpower');
     }
   }
@@ -37,14 +42,18 @@ export class SuperpowerService {
 
   async update(id: number, updateSuperpowerDto: UpdateSuperpowerDto): Promise<Superpower> {
     const superpower = await this.findOneOrFail({ where: { id } });
+    this.logger.warn({ msg: 'You will update this superpower', id });
     if (!superpower) {
+      this.logger.error({ msg: 'Superpower not found', id });
       throw new NotFoundException('Superpower not found');
     }
+    this.logger.info({ msg: 'Updating superpower', id });
     this.superpowerRepository.merge(superpower, updateSuperpowerDto);
     return this.superpowerRepository.save(superpower);
   }
 
   async remove(id: number): Promise<void> {
+    this.logger.warn({ msg: 'You will delete this superpower', id });
     const superpower = await this.findOneOrFail({ where: { id } });
     if (!superpower) {
       throw new NotFoundException('Superpower not found');

@@ -9,10 +9,25 @@ import { ConfigModule } from '@nestjs/config';
 import { SuperheroModule } from './superhero/superhero.module';
 import { AuthModule } from './auth/auth.module';
 import { SuperpowerModule } from './superpower/superpower.module';
+import { AttributeModule } from './attribute/attribute.module';
+import { BattleModule } from './battle/battle.module';
+import { PinoLogger, LoggerModule } from 'nestjs-pino';
+import * as pino from 'pino';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport: {
+          target: 'pino-mongodb',
+          options: {
+            uri: process.env.MONGO_URI,
+            collection: 'logs'
+          }
+        }
+      }
+    }),
     TypeOrmModule.forRoot({
       type: process.env.TYPEORM_CONNECTION,
       host: process.env.TYPEORM_HOST,
@@ -34,6 +49,8 @@ import { SuperpowerModule } from './superpower/superpower.module';
     SuperheroModule,
     AuthModule,
     SuperpowerModule,
+    AttributeModule,
+    BattleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
