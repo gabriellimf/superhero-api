@@ -37,6 +37,14 @@ $ npm run test
 ## Documentação
 - A documentação dessa API está acessível ao iniciar a aplicação e acessar a rota: localhost:3000/api
 
+### Endpoints que podem ser melhor visualizados no Swagger:
+`/superhero`
+`/superpower`
+`/hero-attribute`
+`/battle`
+`/users`
+`/auth/login`
+
 ### Como implementar a aplicação em um serviço em nuvem: Heroku
 
 ### Passo 1: Configurar MongoDB Atlas
@@ -217,3 +225,134 @@ volumes:
   postgres_data:
   mongo_data:
 ```
+
+## Como configurar o projeto com integração contínua
+
+- O ideal quando vamos trabalhar com integração contínua em um framework tão bem estruturado e completo quanto o NestJs, é seguir o padrão indicado em sua documentação.
+Dito isso, a base dessas instruções podem ser encontradas em [CI/CD integration](https://docs.nestjs.com/devtools/ci-cd-integration).
+
+1. Devemos configurar o nosso main.ts que contem nosso bootrstap file para usar a `GraphPublisher` class exportada de `@nestjs/devtools-integration`. Podemos usar o exemplo da documentação para nos auxiliar com isso, implementando a classe em nosso já existente arquivo.
+```
+async function bootstrap() {
+  const logger = new Logger('bootstrap');
+  const shouldPublishGraph = process.env.PUBLISH_GRAPH === "true";
+
+  const app = await NestFactory.create(AppModule, {
+    snapshot: true,
+    preview: shouldPublishGraph,
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => new BadRequestException(errors),
+    }),
+  );
+
+  const config = new DocumentBuilder()
+    .setTitle('SuperHero API')
+    .setDescription('API for managing superheroes and their attributes.')
+    .setVersion('1.0')
+    .addTag('superhero')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  if (shouldPublishGraph) {
+    await app.init();
+
+    const publishOptions = {
+      apiKey: process.env.DEVTOOLS_API_KEY,
+      repository: process.env.REPOSITORY_NAME,
+      owner: process.env.GITHUB_REPOSITORY_OWNER,
+      sha: process.env.COMMIT_SHA,
+      target: process.env.TARGET_SHA,
+      trigger: process.env.GITHUB_BASE_REF ? 'pull' : 'push',
+      branch: process.env.BRANCH_NAME,
+    };
+
+    const graphPublisher = new GraphPublisher(app);
+    await graphPublisher.publish(publishOptions);
+
+    await app.close();
+    logger.log('Dependency graph published successfully');
+  } else {
+    await app.listen(3000);
+    logger.log('Application listening on port 3000');
+  }
+}
+
+bootstrap();
+
+```
+
+- Adicionei o GraphPublisher e a lógica para verificar se a variável de ambiente PUBLISH_GRAPH está configurada para "true". Isso determina se o gráfico deve ser publicado (durante o workflow de CI/CD).
+
+2. Vamos criar um novo GitHub Workflow, basta criar um diretório `.github/workflows` na raiz do nosso projeto.
+
+3. Podemos criar uma arquivo com qualquer nome, nesse caso vamos usar o nome recomendado na doc para melhor entendimento: `publish-graph.yml`
+
+4. Definimos o nosso workflow do GitHub Actions para integrar com o Devtools do NestJs:
+```
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+```
+Nessa primeira parte, basicamente especificamos o trigger pro workflow ser acionado.
+
+```
+jobs:
+  publish:
+    if: github.actor != 'dependabot[bot]'
+    name: Publish Dependency Graph
+    runs-on: ubuntu-latest
+```
+Aqui definimos os jobs a serem executados e colocamos uma condição para evitar execuções automáticas do bot do NestJs.
+
+```
+steps:
+  - uses: actions/checkout@v3
+  - uses: actions/setup-node@v3
+    with:
+      node-version: '18'
+      cache: 'npm'
+  - name: Install dependencies
+    run: npm ci
+  - name: Setup Environment (PR)
+    if: ${{ github.event_name == 'pull_request' }}
+    shell: bash
+    run: |
+      echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+  - name: Setup Environment (Push)
+    if: ${{ github.event_name == 'push' }}
+    shell: bash
+    run: |
+      echo "COMMIT_SHA=$GITHUB_SHA" >> $GITHUB_ENV
+  - name: Publish Dependency Graph
+    run: PUBLISH_GRAPH=true npm run start
+    env:
+      DEVTOOLS_API_KEY: ${{ secrets.DEVTOOLS_API_KEY }}
+      REPOSITORY_NAME: ${{ github.repository }}
+      BRANCH_NAME: ${{ github.ref_name }}
+      TARGET_SHA: ${{ github.event.pull_request.base.sha }}
+```
+
+Neste passo fazemos o checkout do código do repositório, permitindo que ele seja utilizado nos próximos passos. Configuramos o ambiente com a versão especificada do Node.js.
+Instalamos as dependências do projeto, utilizando npm ci que é ideal para builds.
+Depois, configuramos variáveis de ambiente específicas para pull requests e pushes. Definimos a variável COMMIT_SHA que é usada para rastrear o commit específico sendo construído ou testado.
+Depois, executa o comando para iniciar a aplicação com a variável de ambiente PUBLISH_GRAPH definida como true, o que ativa a publicação. As variáveis de ambiente adicionais aqui são configuradas para uso pelo processo de publish graphy.
+
+Idealmente, as variáveis de ambiente devem estar configuradas no GitHub Secrets.
+
+Este workflow será executado para cada solicitação pull direcionada ao branch main OU caso haja um commit direto para o branch main. O que é essencial aqui é que forneçamos as variáveis ​​de ambiente necessárias para nossa classe GraphPublisher (para ser executada).
+
+Por último, vamos até o main.ts de novo e lembre-se de atualizar o publishOptions com o DEVTOOLS_API_KEY se ainda não estiver definido. No nosso caso, criariamos uma variavel de ambiente no .env para isso.
+
+Com esses passos, nossa integração está pronta.
